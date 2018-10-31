@@ -1,0 +1,11 @@
+Tu jest sama instrukcja. Po więcej informacji zobacz plik: "informacje o plikach.txt"
+1. Musisz ustawić w pliku konwerter.0.3.py liczbę kanałów, jaką wykorzystuje układ FPGA. Jest ustawione 52.
+2. Separator pomiędzy pomiarami jest w tym samym pliku, linia 16. Domyślnie "\n\n"
+3. Separator pomiędzy kanałami jest w pliku funkcjeGenKonw.py, linia 59. Domyślnie "\n"
+4. Jak już to ustawisz, to otwórz folder z plikiem, który chcesz przekonwertować. Musi być txt, chyba że zmienisz to w linii 13 w konwerter.0.3.py
+5. Jak już wszystko będzie OK, odpal skrypt konwerter.0.3.py. Już nie musisz podawać więcej argumentów.
+6. Na tym etapie nie powinieneś napotkać na błędy. To w sumie ma tylko przepisywać do pliku .root.
+7. Dalej już nie powinieneś nic zmieniać, chyba że napotkasz na błędy. Odpalasz skrypt histogramy.0.4.py. Też bez argumentów.
+8. Jeśli są jakieś błędy to spójrz do drugiego pliku .txt Tam wszystko jest krok po kroku dokładnie opisane. Wszystkie błędy, które przewidziałem masz opisane w
+	każdym UWAGA! Zacznij to czytać od tego, jeśli nie chcesz tracić czasu. Możesz tylko rzucić okiem, czy taka dokładność opisu będzie OK dla pracy, czy muszę ją 
+	zmniejszyć/zwiększyć. Jeśli tak, to wykorzystam to, co napisałem do pracy.

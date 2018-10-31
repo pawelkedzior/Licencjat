@@ -1,0 +1,246 @@
+To jest najnowsza wersja plików, które używam.
+plik: pliki.py 
+	Zawiera funkcje, które służą do wyboru konkretnego pliku w celu jego obróbki.
+	Jest wykorzystywany przez skrypty histogramy.0.4.py i konwerter.0.3.py.
+	Głównie chodzi w nim o wybór pliku i zwrócenie jego nazwy przez funkcję.
+	Funkcje:
+		getch(): implementacja windowsowego getch;
+		listaPlików(): funkcja szuka plików o podanym rozszerzeniu w folderze o podanej ścieżce i zwraca listę łańcuchów znaków z nazwami plików o tym rozszerzeniu;
+		wybierzPliki(): funkcja wypisująca pliki z listy zwróconej przez funkcję wyżej i udostępniająca interfejs wyboru konkretnego pliku; zwraca nazwę wybranego pliku; wybór zatwierdza się ENTER-em albo strzałką w prawo
+!	[z tego pliku nie korzystasz, jest on wykorzystywany pośrednio przez skrypty, musi być w tym samym katalogu co one]
+	
+	
+	
+	
+	
+	
+		
+plik: histogramy.0.4.py
+	To plik, który odczytuje z pliku .root dane przekonwertowane przez skrypt konwerter.0.3.py.
+	Jego część wykonywalna zaczyna się od linii 201, wcześniej są umieszczone kody funkcji wykorzystywane w nim.
+	Algorytm:
+		1. Wybór odpowiedniego pliku. (o ile dobrze mi się wydaje nazwa musi mieć znaki '[' i ']' występujące w tej kolejności, ale to jest załatwiane przez generator.0.3.py lub konwerter.0.3.py)
+		2. Otworzenie pliku i odczytanie daty utworzenia, przygotowanie do odczytu (linie 202-206)
+		3. Odczyt danych przy pomocy funkcji odczytDanychZPliku() (patrz niżej: Funkcje), umieszczenie odczytu w zmiennej dane i zamknięcie pliku(linie 208-209)
+		4. Utworzenie pliku "histogramy [(data konwersji lub odebrania danych z układu)].root" (linia 212)
+		5. Utworzenie zmiennych przechowujących wykresy różnic pomiędzy parami kanałów przy pomocy funkcji stworzZmienneWykresowe() i zapisanie zwróconej wartości 
+			do zmiennej wykresy (linia 215)
+		6. Utworzenie katalogu na pliki .png z wykresami. (linia 218)
+				UWAGA: W katalogu, w którym pracujesz nie może być katalogu z nazwą zawierającą datę pliku, który jest właśnie obsługiwany, mógłbym to zmienić,
+					ale w sumie po co przerabiać 10000 razy ten sam plik? Chyba tylko w celu sprawdzenia skryptu, ale jak już będzie OK, to nie trzeba. A nie zrobiłem obejścia
+					tego, bo mi się nie chciało a i tak muszę usuwać katalog z wykresami, żeby nie zaśmiecać dysku.
+		7. Wypełnienie i wyświetlenie wykresów przy pomocy funkcji malujWykresyRoznic() i zapisanie zwracanego przez nią pojemnika z odchyleniami do zmiennej sigmy (linia 219)
+		8. Linie 221-227 wstawiłem do debugowania, bo wartości odchyleń wydawały mi się podejrzanie małe, wypisują wartości odchyleń, z tym że nie ma informacji jakie
+			to kanały, robiłem to dla wygenerowanych zestawach danych o 4 kanałach
+		9. Stworzenie, wyświetlenie i zapisanie zbiorczych wykresów odchyleń dla zbocz narastających i opadających przy pomocy funkcji malujWykresyOdchylen()
+		10. Zamknięcie pliku histogramy [coś].root
+		
+		
+		
+	Funkcje:
+		odczytDanychZPliku():
+			linie: 42-61
+			argumenty wejściowe: drzewo - drzewo z plikiem (klasa TFile()), liczbaDanych - liczba pomiarów znajdujących się w pliku, ileKanalow - jak nazwa
+			ciało: odczyt w [liczbaDanych] pętli każdego pomiaru wg algorytmu:
+				1. Wybierz i-ty pomiar przechowywany w gałęzi "Zestaw" 
+				2. W pętli powtarzanej [ileKanalow] razy wykonaj:
+					2.1. Do listy dodajDane (na początku pustej) dopisz wartość zwracaną przez funkcję odczytDanychZKanalu() dla j-tego kanału, zbocze opadające
+					2.2. Jak wyżej, ale zbocze narastające
+				3. Dodaj do listy zwrot dane z listy dodajDane
+			zwraca: tablicę z [liczbaDanych] odczytanych danych zmiennymi w tej tablicy są tablice z 2*[ileKanalow] zmiennymi o formacie zwracanym przez funkcję: odczytDanychZKanalu()
+		
+		odczytDanychZKanalu():
+			linie: 63-67			
+			argumenty wejściowe: galaz - gałąź z odczytywanymi danymi (klasa TBranch()), nrKanalu - jak nazwa, zbocze - krótka nazwa zbocza "op" lub "nar"
+			ciało: odczyt 32 bitów danych z kanału dla danego pomiaru
+			zwraca: czteroelementową tablicę z danymi rozłożonymi na składowe przy pomocy funkcji rozlozPomiarNaSkladowe()
+			
+		rozlozPomiarNaSkladowe():
+			linie: 22-38
+			argumenty wejściowe: pomiar - dane z kanału (lista 32-óch bitów)
+			ciało: konwersja składowych z bitów na liczby całowite i umieszczenie ich w tablicy
+			zwraca: tablicę czteroelementową z danymi: [zbocze, nr Kanału, czas zgrubny, czas zmierzony]
+			
+		stworzZmienneWykresowe():
+			linie: 87-93
+			argumenty wejściowe: katalog - ścieżka obecnego katalogu, ileKanalow - jak w nazwie
+			ciało: utworzenie zmiennych wykresowych o klasie TH1I() i przechowanie ich w klasie PojemnikWykresowRoznic() (patrz niżej: Klasy), wykorzystuje funkcję stworzZmiennaWykresowa()
+				linia 91 odpowiada za wartości pomiarów dla zbocz opadających, a linia 92 dla zbocz narastających
+			zwraca: klasę PojemnikWykresowRoznic() przechowującą zmienne wykresowe
+		
+		stworzZmiennaWykresowa():
+			linie: 95-100
+			argumenty wejściowe: katalog - jw., kanal1 - wyższy numer kanału, kanal2 - niższy numer kanału, jaka - zbocze 1 - narastające lub 0 - opadające, pojemnik - klasa PojemnikWykresowRoznic()
+			ciało: utworzenie zmiennej wykresowej dla podanych parametrów i umieszczenie jej w pojemniku, który jest zwracany przez funkcję stworzZmienneWykresowe();
+				algorytm:
+					1. Stwórz krótką i długą nazwę typu wykresu (linie 96-97)
+					2. Stworzenie zmiennej wykresowej wg konstruktora (nazwa,tytuł,liczba pojemników=1055,lewa granica=-527, prawa granica=527)
+						UWAGA: Nie wiem czy dobrze ustawiłem zakresy. Jakbym ustawił pełny możliwy to pojemnik zajmowałby ~1GB pamięci, więc musiałem to oczywiście obciąć.
+								Pod uwagę wziąłem ostatnią cyfrę czasu zgrubnego i cały zmierzony. Tak żeby było coś widać. Jakby trzeba było szerzej to dla dwóch ostatnich 
+								cyfr wartości powinny być l.pojemników=8175 a granice 4087 (z minusem dla lewej). Dla pełnego zakresu byłoby to: 262148351 i 131074175 -
+								chyba jest to oczywiście za duża liczba - tyle intów dla jednego wykresu?! a tych wykresów ma być 1326. 
+								Ogólnie liczę to tak: 10^ilecyfr*40+127 (granica) a pojemniki to wynik*2+1 (to +1 dla 0). 
+								A *40 to dlatego, żeby nie mnożyć tego *1000 i 127*25 - mniejsza liczba - mniej pojemników, czyli mniej problemów :)
+								I patrz: funkcje wypelnijWykres() i malowanieWykresuZKanalu().
+					3. Zapisanie wykresu do pojemnika, przy pomocy metody ustawWykres(), klasy PojemnikWykresowRoznic()
+					4. Ustawienie katalogu dla wykresu 
+		
+		malujWykresyRoznic():
+			linie: 136-149
+			argumenty wejściowe: wykresy - pojemnik ze zmiennymi wykresowymi, dane - tablica z odczytanym zestawem pomiarowym, ileKanalow - jak w nazwie, 
+				liczbaDanych - liczba pomiarów, czas - łańcuch znaków składający się z '[', czegoś między nimi, tu data ']'
+			ciało: tworzy pole wykresu, następnie wypełnia każdy utworzony wykres przy pomocy funkcji wypelnijWykres() i wyświetla go na ekran oraz zapisuje w katalogu 
+				na wykresy w pliku .png, przy pomocy funkcji malowanieWykresuZKanalu()
+			zwraca: pojemnik przechowujący wartości odchyleń, odczytanych z dopasowania funkcji Gaussa, w formacie klasy PojemnikOdchylen()
+			
+		wypelnijWykres():
+			linie: 151-157
+			argumenty wejściowe: wykresy, dane, liczbaDanych, kanal1, kanal2 - jw., ktoreZbocze - jak w nazwie
+			ciało: powtarza [liczbaDanych] razy:
+				jeśli dane z obu wykresów są niepuste, to:
+					oblicz wartość zmierzoną czasu z kanału [kanal1] oraz [kanal2] i odejmij je od siebie
+					wstaw obliczoną wartość do odpowiedniego wykresu (odpowiedni wykres wybierz z pojemnika przy pomocy funkcji wezWykres() z klasy PojemnikWykresowRoznic())
+					UWAGA!
+						1: jeśli zmienisz wartość zakresu w funkcji stworz zmienną wykresową to tu też musisz zmienić to +528 na inną liczbę
+						2: założyłem, że niektóre kanały mogą być puste, ale nie wiem, czy to nie spowoduje błędu przy malowaniu wykresów, jeśli będzie zwracało błąd 
+								póżniej, to trzeba coś wykombinować - może wstawić zera do wykresu, bez liczenia?
+		
+		malowanieWykresuZKanalu():
+			linie: 159-167
+			argumenty wejściowe: zmienneWykresowe - jak nazwie, pojemnik na nie, pojemnikOdchyleń - jak w nazwie, poleWykr - pole Wykresu - klasa TCanvas, 
+				czas - jak w malujWykresyRoznic(), kanal1, kanal2, ktoreZbocze - jw.
+			ciało: 
+				1. Dopasuj funkcję gaussa dla podanego zakresu (linia 160)
+				2. Weź dopasowany parametr sigma i zapisz go w pojemniku odchyleń przy pomocy funkcji ustawWartoscOdchylenia() klasy PojemnikOdchylen() (linie 161-162)
+				3. Ustaw zakres wyświetlania wykresu i zapisz zmiany w wykresie. (linie 163-164)
+				4. Wyświetl wykres. (linia 165)
+				5. Zapisz wykres w pliku .png (linia 166)
+				6. Czekaj 100 ms - czas na wyświetlenie i zapisanie wykresu
+				UWAGA!
+					Dla punktów 1 i 3 trzeba uważać na zakresy dopasowania i wyświetlania, chyba że nie trzeba widzieć wszystkiego
+		
+		malujWykresyOdchylen():
+			linie: 171-181
+			argumenty wejściowe: sigmy - PojemnikOdchylen(), ileKanalow - jak w nazwie, czas - "[coś]", katalog - ścieżka katalogu, na którym działamy
+			ciało: okomentowane w kodzie
+		
+		wypelnijWykresZbiorczy():
+			linie: 183-189
+			argumenty wejściowe: wykres - zmienna wykresowa TH2D(), ileKanalow, pojemnikOdchylen, ktoreZbocze - jak w nazwach
+			ciało: wypełnia wykres wartościami odchyleń (linie 184-186) i ustawia etykiety dla odpowiednich pojemników (187-189)
+		
+		malowanieWykresuZbiorczego():
+			linie: 191-198
+			argumenty wejściowe: wykres, ktoreZbocze - jw., czas, katalog - jak w malujWykresyOdchylen()
+			ciało: tworzy pole wykresu, konfiguruje go, wyświetla i zapisuje w pliku .png
+		
+	Klasy:
+		PojemnikWykresowRoznic():
+			linie: 71-85
+			pola:
+				wykresyOp - lista zmiennych wykresowych dla wykresów różnic pomiędzy odczytem pojawienia się zbocza opadającego
+				wykresyNar - jak wyżej, tylko zbocze narastające
+			metody:
+				konstruktor:
+					linie: 74-78
+					argumenty: ileKanalow - jak w nazwie
+					ciało: utworzenie [ileKanalow/2*(ileKanalow-1)] pustych zmiennych, w celu ich późniejszego uzupełnienia i umieszczenie ich w obu listach (nie ileKanalow^2, żeby nie było duplikatów)
+				ustawWykres():
+					linie: 79-83
+					argumenty: zbocze 1 - narastające 0 - opadające, kanal1 - wyższy numer kanału, kanal2 - niższy numer kanału, wykres - zmienna wykresowa (klasa TH1I())
+					ciało: zapisanie do odpowiedniego pola odpowiedniej listy wykresu różnic pomiędzy kanałami [kanal1] i [kanal2]
+				wezWykres():
+					linie: 84-85
+					argumenty: jak w funkcji ustawWykres(), ale bez argumentu wykres
+					ciało: zwrócenie zmiennej wykresowej dla kanałów [kanal1] i [kanal2]
+					zwraca: zmienną wykresową TH1I() dla różnic pomiędzy kanałami [kanal1] i [kanal2]
+		
+		PojemnikOdchylen():
+			linie: 119-134
+			pola:
+				kanalyOp
+				kanalyNar
+					oba podobnie jak wyżej, z tym że wykorzystywane są zmienna klasy Odchylenie() zamiast TH1I(), przechowujące wartość parametru sigma rozkładu Gaussa
+			metody:
+				konstruktor:
+					linie: 122-127
+					argumenty: liczbaKanalow - jak w nazwie
+					ciało: podobnie jak w klasie PojemnikWykresowRoznic(), z tym, że wartości nie są zerowe, tylko są nieskonfigurowanymi instancjami klasy Odchylenie()
+				KOMENTARZ:
+					właśnie wyczaiłem, że niepotrzebnie stworzyłem klasę odchylenie, ale nie będę teraz poprawiał, mogę to pozmieniać tak, żeby była jeszcze funkcja
+					wypisująca na ekran wartości odchyleń i dla jakiego kanału to jest, ale to może później
+				ustawWartoscOdchylenia():
+					linie: 128-132
+					argumenty i ciało podobnie jak w PojemnikWykresowRoznic.ustawWykres()
+				wezWartosc()
+					linie: 133-134
+					argumenty i ciało podobnie jak w PojemnikWykresowRoznic.wezWykres()				
+				
+		Odchylenie():
+			linie: 104-117
+			PRAWDOPODOBNIE NIEPOTRZEBNE
+			
+!	[ten skrypt uruchamiasz na końcu, nie potrzebuje żadnych argumentów wejściowych]
+
+
+
+
+
+
+
+plik: funkcjeGenKonw.py
+	Skrypt zawierający definicje funkcji wykorzystywanych przez skrypty konwertera i generatora. Nie będę opisywał funkcji wykorzystywanych jedynie przez generator.
+	Funkcje:
+		stworzStrukturePomiaru():
+			linie: 16-22
+			argumenty wejściowe: ileKanalow - jak w nazwie
+			ciało: tworzy instrukcję w języku C, dla funkcji klasy gROOT, która ma za zadanie stworzenie struktury składającej się z [ileKanalow]*2 32-elementowych tablic
+				typu Bool_t ([ileKanalow]*2, bo dla zbocz opadających i narastających)
+			
+		odczytajLubStworzDate():
+			linie: 9-14
+			argumenty wejściowe: nazwaPliku - jak w nazwie
+			ciało: sprawdza, czy plik, zawiera symbol '[' i jeśli tak, to odczytuje to, co się znajduje pomiędzy nim a ']', jeśli nie, to tworzy datę w formacie:
+				Dzień.Miesiąc.Rok Godzina:Minuta:Sekunda, przy pomocy funkcji stworzDate(), zdefiniowanej w liniach 6-7
+			zwraca: łańcuch znaków składający się z '[', jakiegoś ciągu znaków, najczęściej daty i ']'
+			
+		lancuchFormatuDanych():
+			linie: 25-30
+			argumenty wejściowe: ileKanalow - jak w nazwie
+			ciało: tworzy łańcuch znaków potrzebny do poinformowania funkcji TTree.Branch() o typie danych, które ma przechowywać gałąź drzewa
+			zwraca: podany łańcuch znaków
+			
+		konwertujIZapiszDane():
+			linie: 55-65
+			argumenty wejściowe: pojemnikDoZapisu - drzewo TTree, zmiennaZapisu - klasa reprezentująca strukturę utworzoną przy pomocy funkcji stworzStrukturePomiaru()
+				liczbaPomiarow - jak w nazwie, zestawDanych - odczytane z pliku .txt dane podzielone na tablicę; każde pole tablicy jest łańcuchem znaków składających się z
+				32-óch zer i jedynek oddzielonych znakiem "\n" w ilości odpowiadającej liczbie kanałów wykorzystywanych*2
+			ciało: dzieli każdy pomiar na składowe kanały i zmienia je z tekstu na tablicę typu bool i zapisuje ją w pliku .root; wykorzystuje funkcje 
+				tekstNaTabLog() - linie 38-42 i wezNumerKanalu() - linie 32-36
+	
+!	[jak napisałem, nie uruchamiasz, wykorzystywany przez skrypty konwerter.0.3.py i generator.0.3.py]
+
+
+
+
+
+plik: konwerter.0.3.py
+	To skrypt konwertera pliku .txt na plik .root. Funkcje w nim użyte są zdefiniowane w pliku funkcjeGenKonw.py. On zawiera jedynie algorytm i liczbę kanałów w układzie FPGA
+	Mogę to zmienić tak, żeby to podawać z linii komend. Na razie jest na twardo wklepane 52. W sumie plik jest prosty i można go łatwo przeczytać. Najważniejsze
+	są funkcje zdefiniowane w pliku funkcjeGenKonw.py (stworzStrukturePomiaru(), odczytajLubStworzDate(), lancuchFormatuDanych(), konwertujIZapiszDane())
+	Algorytm:
+		1. Patrz linia 8 - jak chcesz możesz zmienić liczbę kanałów w linii 6
+		2. Patrz linia 12 - separator kolejnych pomiarów możesz zmienić w linii 16, domyślnie "\n\n"
+		3. Tworzenie drzewa do pliku .root (linie 20-25)
+		4. Patrz linia 27
+		5. Patrz linia 30
+!	[uruchamiasz go najpierw, nie podajesz żadnych argumentów, plik wybierasz z listy, musi być .txt]
+
+
+
+
+
+
+plik: generator.0.3.py
+	To skrypt generatora pliku .root z danymi. Skrypt strukturalnie napisany tak samo jak konwerter.0.3.py. Jedynie algorytm jest inny, jako że pełni inną funkcję.
+	Tu też kanały podane są na twardo. Można to zmienić. Nie będę go szerzej opisywał. Jest krótki i można się łatwo domyślic o co w nim chodzi. Jego nie potrzebujesz.

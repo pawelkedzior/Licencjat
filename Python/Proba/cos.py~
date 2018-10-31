@@ -1,0 +1,23 @@
+import ROOT
+from ROOT import gROOT, TCanvas, TF1, TPad, TH1I, TLegend
+from ROOT import TH2F
+import numpy as np
+#from matplotlib import pyplot as plt
+import time 
+import progressbar
+from time import sleep 
+
+channels = -1.
+fine1 = -1
+fine2 = -1
+coarse = -1.
+rising = -1.
+diff = int()
+
+fineAll = [-1]
+
+f = ROOT.TFile.Open("histogramy [18201172953].root")
+myTree = f.Get("Wykres 13-5 op.")
+ble=f.Get("Wykres 13-4 op.")
+print myTree.FindFirstBinAbove(0,1)
+print ble.FindFirstBinAbove(0,1)
